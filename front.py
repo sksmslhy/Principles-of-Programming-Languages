@@ -31,6 +31,8 @@ cnt_const = 0
 cnt_op = 0
 
 order = 0
+order_list = []
+line_cnt = 0
 
 
 # lookup
@@ -134,82 +136,132 @@ def lexical():
 
 
 def program(string:str):
-    global input, cnt_id, cnt_const, cnt_op
+    global input, cnt_id, cnt_const, cnt_op, order
     input = string
     input = list(input)
     input.append(EOF)
     lexical()
     print('Enter <program>')
+    order += 1
     statements()
+    order -= 1
     #print(symbolTable)
     #print("Exit <program>")
     print("ID: %d; CONST: %d; OP: %d;" % (cnt_id, cnt_const, cnt_op))
 
 
 def statements():
+    global order
     print("Enter <statements>")
+    order += 1
     statement()
+    order -= 1
+    order += 1
     temp()
+    order -= 1
     #print("Exit <statements>")
 
 
 def temp():
+    global order
     print("Enter <temp>")
     if nextToken == SEMI_COLON:
+        order += 1
         semi_colon()
+        order -= 1
+        order += 1
         statements()
+        order -= 1
 
 
 def statement():
+    global order
     print("Enter <statement>")
+    order += 1
     ident()
+    order -= 1
+    order += 1
     assignment_op()
+    order -= 1
+    order += 1
     expression()
+    order -= 1
     #print("Exit <statement>")
 
 
 def expression():
+    global order
     print("Enter <expression>")
+    order += 1
     term()
+    order -= 1
+    order += 1
     term_tail()
+    order -= 1
     #print("Exit <expression>")
 
 
 def term_tail():
+    global order
     print("Enter <term_tail>")
     if nextToken == ADD_OP or nextToken == SUB_OP:
+        order += 1
         add_op()
+        order -= 1
         term()
         term_tail()
     #print("Exit <term_tail>")
 
 
 def term():
+    global order
     print("Enter <term>")
+    order += 1
     factor()
+    order -= 1
+    order += 1
     factor_tail()
+    order -= 1
     #print("Exit <term>")
 
 
 def factor_tail():
+    global order
     print("Enter <factor_tail>")
     if nextToken == MUL_OP or nextToken == DIV_OP:
+        order += 1
         mult_op()
+        order -= 1
+        order += 1
         factor()
+        order -= 1
+        order += 1
         factor_tail()
+        order -= 1
     #print("Exit <factor_tail>")
 
 
 def factor():
+    global order
     print("Enter <factor>")
     if nextToken == LEFT_PAREN:
+        order += 1
         left_paren()
+        order -= 1
+        order += 1
         expression()
+        order -= 1
+        order += 1
         right_paren()
+        order -= 1
     elif nextToken == IDENT:
+        order += 1
         ident()
+        order -= 1
     else:
+        order += 1
         const()
+        order -= 1
     #print("Exit <factor>")
 
 
@@ -249,16 +301,15 @@ def semi_colon():
 def add_op():
     global cnt_op, order
     cnt_op += 1
-    order += 1
-    print('Enter <add_operator>')
+    print('Enter <add_operator>, order : ', order)
     lexical()
     #print("Exit <add_operator>")
 
 
 def mult_op():
-    global cnt_op
+    global cnt_op, order
     cnt_op += 1
-    print('Enter <mult_operator>')
+    print('Enter <mult_operator>, order : ', order)
     lexical()
     #print("Exit <mult_operator>")
 
@@ -278,7 +329,7 @@ def right_paren():
 #program('operand1 := 3 ; operand2 := operand1 + 2 ; target := operand1 + operand2 * 3')
 program('operand1 := 3 ; operand2 := operand1 + 2 ; target := (operand1 + operand2) / 30 + 2 * 3')
 #program("o1 := 3; o2 = o1 + 2 ; target = (o1 + o2) / 3")
-
+# 7 / 12 10 9  10
 
 #print(tokenString)
 #print(symbolTable)
