@@ -32,6 +32,8 @@ cnt_id = 0
 cnt_const = 0
 cnt_op = 0
 cnt_op_list = []
+cnt_const_list = []
+cnt_id_list = []
 
 order = 0 # 파스트리 깊이 구해서 연산자끼리 우선 순위 구하기 위해
 order_list = [] # 연산자들의 order 저장 용도
@@ -136,7 +138,7 @@ def lexical():
     elif charClass == EOF:
         nextToken = EOF
         lexeme[:3] = 'EOF'
-    print("Next token is : %d  Next lexeme is %s" %(nextToken, ''.join(lexeme)))
+    #print("Next token is : %d  Next lexeme is %s" %(nextToken, ''.join(lexeme)))
     tokenString = ''.join(lexeme)
     token_list += ''.join(lexeme)
     lexeme = []
@@ -145,7 +147,7 @@ def lexical():
 
 
 def program(string:str):
-    global input, cnt_id, cnt_const, cnt_op, order, cnt_op_list
+    global input, cnt_id, cnt_const, cnt_op, order, cnt_op_list, cnt_const_list, cnt_id_list
     input = string
     input = list(input)
     input.append(EOF)
@@ -156,8 +158,10 @@ def program(string:str):
     order -= 1
     #print(symbolTable)
     #print("Exit <program>")
-    print("ID: %d; CONST: %d; OP: %d;" % (cnt_id, cnt_const, cnt_op))
+    #print("ID: %d; CONST: %d; OP: %d;" % (cnt_id, cnt_const, cnt_op))
     cnt_op_list.append(cnt_op)
+    cnt_const_list.append(cnt_const)
+    cnt_id_list.append(cnt_id)
 
 
 def statements():
@@ -318,10 +322,12 @@ def assignment_op(arithmatic:str):
 
 
 def semi_colon():
-    global cnt_op, cnt_id, cnt_const, order_list, line_cnt, cnt_op_list
+    global cnt_op, cnt_id, cnt_const, order_list, line_cnt, cnt_op_list, cnt_const_list, cnt_id_list
 
-    print("ID: %d; CONST: %d; OP: %d;"%(cnt_id, cnt_const, cnt_op))
+#    print("ID: %d; CONST: %d; OP: %d;"%(cnt_id, cnt_const, cnt_op))
     cnt_op_list.append(cnt_op)
+    cnt_const_list.append(cnt_const)
+    cnt_id_list.append(cnt_id)
     cnt_id = 0
     cnt_const = 0
     cnt_op = 0
@@ -431,10 +437,22 @@ def assign(a, b):
 def cal():
     global symbolTable, token_list, arithmatic_list, order_list, cnt_op_list, lexemes
     # 라인별로 자르기
-    lexemes.remove('(')
-    lexemes.remove(')')
     lexemes.remove('EOF')
-    #print(lexemes)
+    copylexemes = copy.deepcopy(lexemes)
+    if '(' in lexemes:
+        lexemes.remove('(')
+    if ')' in lexemes:
+        lexemes.remove(')')
+
+
+    semi = list(filter(lambda x: copylexemes[x] == ';', range(len(copylexemes))))
+    semi.insert(0, -1)
+    semi.append(len(copylexemes))
+
+    lineprint = []
+    for i in range(len(semi) - 1):
+        lineprint.append(copy.deepcopy(copylexemes[semi[i]+1:semi[i + 1]+1]))
+
 
     semi = list(filter(lambda x: lexemes[x] == ';', range(len(lexemes))))
     semi.insert(0, -1)
@@ -442,7 +460,7 @@ def cal():
 
     lex_list = []
     for i in range(len(semi) - 1):
-        lex_list.append(copy.deepcopy(lexemes[semi[i] + 1:semi[i + 1]]))
+        lex_list.append(copy.deepcopy(lexemes[semi[i]+1:semi[i + 1]]))
     #print(lex_list)
 
     arithmatic_list_copy = copy.deepcopy(arithmatic_list)
@@ -460,86 +478,94 @@ def cal():
     #print('now_orders : ', now_orders)
 
     for num, line in enumerate(lex_list):
-        now_arithmatic = now_arithmatics[num]
-        now_order = now_orders[num]
+        try:
+            print(' '.join(lineprint[num]))
+            now_arithmatic = now_arithmatics[num]
+            now_order = now_orders[num]
 
-        #print("-"*20,num,"-"*20)
-        #print(' '.join(line))
-        #print('now_arithmatic = ', now_arithmatic)
-        #print('now_order = ', now_order)
+            #print("-"*20,num,"-"*20)
+            #print(' '.join(line))
+            #print('now_arithmatic = ', now_arithmatic)
+            #print('now_order = ', now_order)
 
-        en = 0
-        while len(now_arithmatic) != 0:
-            #print(line)
-            #print(now_arithmatic[en])
-            #print(len(now_arithmatic))
-            #temp = line.index(now_arithmatic[en])
-            #print("now en : ", en)
-            if now_order[en] == max(now_order) and len(now_arithmatic) != 1:
-                temp = line.index(now_arithmatic[en])
-                if now_arithmatic[en] == '+':
-                    #print("DO +")
-                    result = add(line[temp - 1], line[temp + 1])
-                    del line[temp - 1]
-                    del line[temp - 1]
-                    del line[temp - 1]
+            en = 0
+            while len(now_arithmatic) != 0:
+                #print(line)
+                #print(now_arithmatic[en])
+                #print(len(now_arithmatic))
+                #temp = line.index(now_arithmatic[en])
+                #print("now en : ", en)
+                if now_order[en] == max(now_order) and len(now_arithmatic) != 1:
+                    temp = line.index(now_arithmatic[en])
+                    if now_arithmatic[en] == '+':
+                        #print("DO +")
+                        result = add(line[temp - 1], line[temp + 1])
+                        del line[temp - 1]
+                        del line[temp - 1]
+                        del line[temp - 1]
+                        line.insert(temp - 1, result)
+                        now_arithmatic.pop(en)
+                        now_order.pop(en)
+                        #print("now arithmatic : ", now_arithmatic)
+                    elif now_arithmatic[en] == '-':
+                        #print("DO -")
+                        result = sub(line[temp - 1], line[temp + 1])
+                        del line[temp - 1]
+                        del line[temp - 1]
+                        del line[temp - 1]
+                        line.insert(temp - 1, result)
+                        now_arithmatic.pop(en)
+                        now_order.pop(en)
+                        #print("now arithmatic : ", now_arithmatic)
+                    elif now_arithmatic[en] == '/':
+                        #print("DO /")
+                        result = div(line[temp - 1], line[temp + 1])
+                        del line[temp - 1]
+                        del line[temp - 1]
+                        del line[temp - 1]
+                        line.insert(temp - 1, result)
+                        now_arithmatic.pop(en)
+                        now_order.pop(en)
+                        #print("now arithmatic : ", now_arithmatic)
+                    elif now_arithmatic[en] == '*':
+                        #print("DO *")
+                        result = mul(line[temp - 1], line[temp + 1])
+                        del line[temp - 1]
+                        del line[temp - 1]
+                        del line[temp - 1]
+                        line.insert(temp - 1, result)
+                        now_arithmatic.pop(en)
+                        now_order.pop(en)
+                        #print("now arithmatic : ", now_arithmatic)
+                    en = 0
+                elif now_arithmatic[0] == ':=' and len(now_arithmatic) == 1:
+                    #print("DO :=")
+                    result = assign(line[0], line[2])
+                    del line[0]
+                    del line[0]
+                    del line[0]
                     line.insert(temp - 1, result)
                     now_arithmatic.pop(en)
                     now_order.pop(en)
-                    #print("now arithmatic : ", now_arithmatic)
-                elif now_arithmatic[en] == '-':
-                    #print("DO -")
-                    result = sub(line[temp - 1], line[temp + 1])
-                    del line[temp - 1]
-                    del line[temp - 1]
-                    del line[temp - 1]
-                    line.insert(temp - 1, result)
-                    now_arithmatic.pop(en)
-                    now_order.pop(en)
-                    #print("now arithmatic : ", now_arithmatic)
-                elif now_arithmatic[en] == '/':
-                    #print("DO /")
-                    result = div(line[temp - 1], line[temp + 1])
-                    del line[temp - 1]
-                    del line[temp - 1]
-                    del line[temp - 1]
-                    line.insert(temp - 1, result)
-                    now_arithmatic.pop(en)
-                    now_order.pop(en)
-                    #print("now arithmatic : ", now_arithmatic)
-                elif now_arithmatic[en] == '*':
-                    #print("DO *")
-                    result = mul(line[temp - 1], line[temp + 1])
-                    del line[temp - 1]
-                    del line[temp - 1]
-                    del line[temp - 1]
-                    line.insert(temp - 1, result)
-                    now_arithmatic.pop(en)
-                    now_order.pop(en)
-                    #print("now arithmatic : ", now_arithmatic)
-                en = 0
-            elif now_arithmatic[0] == ':=' and len(now_arithmatic) == 1:
-                #print("DO :=")
-                result = assign(line[0], line[2])
-                del line[0]
-                del line[0]
-                del line[0]
-                line.insert(temp - 1, result)
-                now_arithmatic.pop(en)
-                now_order.pop(en)
 
-            else:
-                en += 1
-                continue
+                else:
+                    en += 1
+                    continue
+            print('(OK)')
+            print("ID: %d; CONST: %d; OP: %d;\n" % (cnt_id_list[num], cnt_const_list[num], cnt_op_list[num]))
+        except:
+            print('(Error)')
+            print("ID: %d; CONST: %d; OP: %d;\n" % (cnt_id_list[num], cnt_const_list[num], cnt_op_list[num]))
+
 
     print("Result ==> ", symbolTable)
 
 
 
-#program('operand1 := 3 ; operand2 := operand1 + 2 ; target := operand1 + operand2 * 3')
-program('operand1 := 3 + 1 ; operand2 := operand1 + 2 ; target := (operand1 + operand2) / 30 + 2 * 3')
-#print("arithmatic_list : ", arithmatic_list)
-#print('order_list : ', order_list)
+program('operand1 := 3 ; operand2 := operand1 + 2 ; target := operand1 + operand2 * 3')
+#program('operand1 := 3 + 1 ; operand2 := operand1 + 2 ; target := (operand1 + operand2) / 30 + 2 * 3')
+
+
 #program("o1 := 3; o2 = o1 + 2 ; target = (o1 + o2) / 3")
 # 7 / 12 10 9  10
 
